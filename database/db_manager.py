@@ -1,90 +1,74 @@
-import gspread
-from google.oauth2.service_account import Credentials
-from pathlib import Path
+import logging
+from typing import Dict, Any, List, Optional
 from datetime import datetime
+from database.sheets_client import obter_cliente_sheets, NOME_PLANILHA_PADRAO
+
+logger = logging.getLogger(__name__)
 
 class JobDatabase:
-    def __init__(self):
-        """Inicializa a conexão com o Google Sheets."""
-        self.diretorio_atual = Path(__file__).resolve().parent
-        self.raiz_projeto = self.diretorio_atual.parent
-        self.caminho_credenciais = self.raiz_projeto / "config" / "google_credentials.json"
+    def __init__(self) -> None:
+        """Inicializa a conexão com o Google Sheets utilizando o módulo de configuração central."""
+        self.cliente = obter_cliente_sheets()
+        if not self.cliente:
+            raise ConnectionError("Falha crítica: Não foi possível autenticar com o Google Sheets.")
         
-        self.scopes = [
-            "https://www.googleapis.com/auth/spreadsheets",
-            "https://www.googleapis.com/auth/drive"
-        ]
-        self.nome_planilha = "Job_Hunter_Database"
-        self.aba_principal = None
-        
-        self._conectar()
-
-    def _conectar(self):
-        """Estabelece a conexão com a API do Google Sheets."""
         try:
-            credenciais = Credentials.from_service_account_file(
-                self.caminho_credenciais, scopes=self.scopes
-            )
-            cliente = gspread.authorize(credenciais)
-            planilha = cliente.open(self.nome_planilha)
+            planilha = self.cliente.open(NOME_PLANILHA_PADRAO)
             self.aba_principal = planilha.sheet1
-            print("✅ Conectado ao Google Sheets com sucesso!")
+            logger.info("✅ Conectado ao Google Sheets (aba principal) com sucesso!")
         except Exception as e:
-            print(f"❌ Erro ao conectar no banco de dados: {e}")
+            logger.error("❌ Erro ao abrir a planilha '%s': %s", NOME_PLANILHA_PADRAO, e)
             raise
 
-    def inicializar_banco(self):
+    def inicializar_banco(self) -> None:
         """Cria o cabeçalho (Schema) da planilha se ela estiver vazia."""
-        valores_linha_1 = self.aba_principal.row_values(1)
-        
-        cabecalho = [
-            "ID_Vaga", "Titulo", "Empresa", "Localizacao", 
-            "Descricao", "Data_Coleta", "Score_IA", "Analise_IA", "Status"
-        ]
-        
-        if not valores_linha_1:
-            print("Planilha vazia. Criando as colunas (Schema)...")
-            self.aba_principal.insert_row(cabecalho, index=1)
-            self.aba_principal.format('A1:I1', {'textFormat': {'bold': True}})
-            print("✅ Estrutura criada com sucesso!")
-        else:
-            print("✔️ O banco de dados já possui colunas estruturadas.")
-
-    def vaga_existe(self, id_vaga):
-        """
-        Verifica se o ID_Vaga já está no banco de dados para evitar duplicidade.
-        """
         try:
-            # Pega todos os valores da coluna 1 (ID_Vaga)
+            valores_linha_1 = self.aba_principal.row_values(1)
+            
+            cabecalho = [
+                "ID_Vaga", "Titulo", "Empresa", "Localizacao", 
+                "Descricao", "Data_Coleta", "Score_IA", "Analise_IA", "Status"
+            ]
+            
+            if not valores_linha_1:
+                logger.info("Planilha vazia. Criando as colunas (Schema)...")
+                self.aba_principal.insert_row(cabecalho, index=1)
+                self.aba_principal.format('A1:I1', {'textFormat': {'bold': True}})
+                logger.info("✅ Estrutura de banco criada com sucesso!")
+            else:
+                logger.info("✔️ O banco de dados já possui colunas estruturadas.")
+        except Exception as e:
+            logger.error("Erro ao inicializar o banco: %s", e)
+            raise
+
+    def vaga_existe(self, id_vaga: str) -> bool:
+        """Verifica se o ID_Vaga já está no banco de dados para evitar duplicidade."""
+        try:
             ids_existentes = self.aba_principal.col_values(1)
             return id_vaga in ids_existentes
         except Exception as e:
-            print(f"Erro ao verificar duplicidade: {e}")
+            logger.error("Erro ao verificar duplicidade: %s", e)
             return False
 
-    def salvar_vaga(self, dados_vaga):
-        """
-        Salva uma nova vaga no banco de dados se não for duplicada.
-        Espera receber um dicionário com os dados da vaga.
-        """
+    def salvar_vaga(self, dados_vaga: Dict[str, Any]) -> bool:
+        """Salva uma nova vaga no banco de dados se não for duplicada."""
         id_vaga = dados_vaga.get("ID_Vaga")
         
         if not id_vaga:
-            print("❌ Erro: A vaga não possui um ID válido.")
+            logger.error("❌ Erro: A vaga não possui um ID válido.")
             return False
 
-        if self.vaga_existe(id_vaga):
-            print(f"⚠️ Ignorado: A vaga '{id_vaga}' já existe no banco.")
+        if self.vaga_existe(str(id_vaga)):
+            logger.warning("⚠️ Ignorado: A vaga '%s' já existe no banco.", id_vaga)
             return False
             
-        # Transforma o dicionário em uma lista na ordem exata das colunas
         linha = [
-            id_vaga,
+            str(id_vaga),
             dados_vaga.get("Titulo", ""),
             dados_vaga.get("Empresa", ""),
             dados_vaga.get("Localizacao", ""),
             dados_vaga.get("Descricao", ""),
-            datetime.now().strftime("%Y-%m-%d %H:%M:%S"), # Gera a data/hora atual
+            datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             dados_vaga.get("Score_IA", ""),
             dados_vaga.get("Analise_IA", ""),
             dados_vaga.get("Status", "Coletada")
@@ -92,86 +76,71 @@ class JobDatabase:
         
         try:
             self.aba_principal.append_row(linha)
-            print(f"✅ Nova vaga salva: {dados_vaga.get('Titulo')} na {dados_vaga.get('Empresa')}")
+            logger.info("✅ Nova vaga salva: %s na %s", dados_vaga.get('Titulo'), dados_vaga.get('Empresa'))
             return True
         except Exception as e:
-            print(f"❌ Erro ao salvar a vaga: {e}")
+            logger.error("❌ Erro ao salvar a vaga: %s", e)
             return False
 
-# ==========================================
+    # ==========================================
     # INTEGRAÇÃO COM A INTELIGÊNCIA ARTIFICIAL
     # ==========================================
 
-    def obter_vagas_sem_score(self) -> list:
-        """
-        Busca todas as vagas que ainda não passaram pelo crivo da IA.
-        Retorna uma lista de dicionários, incluindo a linha exata da planilha.
-        """
+    def obter_vagas_sem_score(self) -> List[Dict[str, Any]]:
+        """Busca todas as vagas que ainda não passaram pelo crivo da IA."""
         try:
-            # Puxa todos os dados usando a linha 1 como chave do dicionário
             registros = self.aba_principal.get_all_records()
             vagas_pendentes = []
             
-            # enumerate cria um contador automático (indice) enquanto percorre a lista
             for indice, vaga in enumerate(registros):
-                # Se o campo 'Score_IA' estiver vazio, essa vaga precisa ser avaliada
                 if not vaga.get('Score_IA'):
-                    # O índice 0 do Python equivale à linha 2 do Sheets
                     vaga['linha_planilha'] = indice + 2 
                     vagas_pendentes.append(vaga)
                     
-            print(f"🔍 Encontradas {len(vagas_pendentes)} vagas aguardando análise da IA.")
+            logger.info("🔍 Encontradas %d vagas aguardando análise da IA.", len(vagas_pendentes))
             return vagas_pendentes
             
         except Exception as e:
-            print(f"❌ Erro ao buscar vagas sem score: {e}")
+            logger.error("❌ Erro ao buscar vagas sem score: %s", e)
             return []
 
     def atualizar_score(self, linha: int, score: int, justificativa: str) -> bool:
-        """
-        Atualiza o Score (Coluna G) e a Análise (Coluna H) em uma única requisição (Lote).
-        """
+        """Atualiza o Score e a Análise em uma única requisição (Lote)."""
         try:
-            # Define o intervalo dinâmico, ex: "G2:H2"
             intervalo = f"G{linha}:H{linha}"
-            
-            # O gspread exige que os dados para atualização em lote sejam uma matriz (lista de listas)
             valores = [[score, justificativa]]
             
-            # Executa a atualização
             self.aba_principal.update(range_name=intervalo, values=valores)
             
-            print(f"💾 Score {score} salvo com sucesso na linha {linha}.")
+            logger.info("💾 Score %d salvo com sucesso na linha %d.", score, linha)
             return True
             
         except Exception as e:
-            print(f"❌ Erro ao salvar o score na linha {linha}: {e}")
+            logger.error("❌ Erro ao salvar o score na linha %d: %s", linha, e)
             return False
 
 # ==========================================
-# TESTE DE EXECUÇÃO E INSERÇÃO
+# TESTE DE EXECUÇÃO
 # ==========================================
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+    
     # 1. Instancia o banco e garante as colunas
     db = JobDatabase()
     db.inicializar_banco()
     
     # 2. Cria uma vaga fictícia para testar a escrita
     vaga_teste = {
-        "ID_Vaga": "https://linkedin.com/jobs/12345",
+        "ID_Vaga": "teste_github_refatoracao_123",
         "Titulo": "Especialista em Customer Success",
         "Empresa": "Tech SaaS Corp",
         "Localizacao": "Remoto",
         "Descricao": "Vaga focada em retenção e CX com uso de dados...",
     }
     
-    print("\n--- Testando Inserção ---")
-    # Tenta salvar a primeira vez (deve funcionar)
+    logger.info("\n--- Testando Inserção ---")
     db.salvar_vaga(vaga_teste)
     
-    print("\n--- Testando Duplicidade ---")
-    # Tenta salvar exatamente a mesma vaga de novo (deve ser bloqueado pelo sistema)
+    logger.info("\n--- Testando Duplicidade ---")
     db.salvar_vaga(vaga_teste)
 
-    
-    
