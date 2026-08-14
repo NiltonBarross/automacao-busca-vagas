@@ -30,14 +30,24 @@ def orquestrar_sistema():
     print("="*40)
     
     # Usando o nosso termo validado
-    termo = "Customer Success"
-    vagas_encontradas = coletor.buscar_vagas(termo_busca=termo)
-    
-    vagas_salvas = 0
-    for vaga in vagas_encontradas:
-        # Se salvar_vaga retornar True, a vaga era nova
-        if db.salvar_vaga(vaga):
-            vagas_salvas += 1
+    termos_de_busca = ['Analista de Dados',
+                       'Analista de BI',
+                       'Business Intelligence',
+                       'Automação',
+                       'n8n',
+                       'Analista de Processos',
+                       'Analista de Operações (Data Driven)',
+                       'Business Analyst'
+                       ]
+
+    todas_vagas_encontradas = []
+
+    for termo in termos_de_busca:
+        vagas = coletor.buscar_vagas(termo_busca=termo)
+        todas_vagas_encontradas.extend(vagas)
+        
+
+    #Codigo termina aqui
             
     print(f"\n✅ Fase 1 concluída. {vagas_salvas} novas vagas salvas no banco.")
 
