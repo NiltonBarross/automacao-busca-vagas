@@ -9,3 +9,7 @@ database/__pycache__/db_manager.cpython-314.pyc
 collectors/__pycache__/gupy_collector.cpython-314.pyc
 scoring/__pycache__/gemini_scorer.cpython-314.pyc
 database/__pycache__/db_manager.cpython-314.pyc
+collectors/__pycache__/gupy_collector.cpython-314.pyc
+database/__pycache__/db_manager.cpython-314.pyc
+scoring/__pycache__/gemini_scorer.cpython-314.pyc
+*.pyc

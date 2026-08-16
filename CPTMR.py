@@ -34,14 +34,15 @@ def orquestrar_sistema() -> None:
     print("🔍 FASE 1: COLETA DE VAGAS MULTI-TERMOS")
     print("="*40)
     
-    termos_estrategicos: List[str] = [        
-        "Analista de Dados",
-        "Analista de BI",
-        "Automação",
-        "N8N",
-        "Analista de Processos",
-        "Analista de Negócios",
-        "Business Analyst"
+    termos_estrategicos: List[str] = [
+        "Analista de requisitos"        
+        # "Analista de Dados",
+        # "Analista de BI",
+        # "Automação",
+        # "N8N",
+        # "Analista de Processos",
+        # "Analista de Negócios",
+        # "Business Analyst"
     ]
     vagas_salvas_total: int = 0
     
