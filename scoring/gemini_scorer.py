@@ -1,71 +1,105 @@
 import os
 import json
+import logging
+from typing import TypedDict
 from google import genai
 from google.genai import types
+from google.genai.errors import APIError
+
+logger = logging.getLogger(__name__)
+
+class ScoreResult(TypedDict):
+    score: int
+    justificativa: str
 
 class GeminiScorer:
-    def __init__(self):
-        # O novo SDK puxa a variável GEMINI_API_KEY do ambiente automaticamente!
-        # Mas mantemos a validação para te avisar caso você esqueça de setar no terminal.
+    def __init__(self) -> None:
         api_key = os.getenv("GEMINI_API_KEY")
         if not api_key:
-            raise ValueError("⚠️ ALERTA: A variável GEMINI_API_KEY não foi encontrada no terminal.")
+            raise ValueError("⚠️ ALERTA: A variável GEMINI_API_KEY não foi encontrada no ambiente.")
         
-        # Inicializa o cliente moderno
         self.client = genai.Client()
-        self.modelo_nome = 'gemini-2.5-flash'
+        self.modelo_nome: str = 'gemini-2.5-flash'
         
-        # O "cérebro" agora entra como uma Instrução de Sistema (System Instruction),
-        # isolando a regra de negócios dos dados da vaga.
-        self.contexto_thiago = """
-        Você é um Tech Recruiter Sênior e Analista de ATS. Sua missão é avaliar a aderência de uma vaga de emprego ao perfil do candidato Thiago.
-        
-        PERFIL DO CANDIDATO (Thiago Marques Ramalho):
-        - Foco de Carreira: Analista de Dados, Analista de BI, Analista de Automação (Nível Júnior).
-        - Experiência Prática Atual: Automação de processos eliminando 100% de trabalho manual, uso de Python, n8n, APIs REST, Webhooks e Google Gemini.
-        - Hard Skills: SQL, Python, Excel, Power BI, Google Looker Studio, n8n, Git, GitHub.
-        - Formação: Análise de Dados e Big Data Science (Senac RJ - 2026).
-        - Idioma: Inglês Básico.
-        - ATENÇÃO: O candidato quer FAZER TRANSIÇÃO. Vagas de 'Customer Success', 'Customer Experience', 'Atendimento' ou 'Suporte' devem ser severamente penalizadas, mesmo que ele tenha experiência anterior nelas.
+        # Otimização de prompt (redução de tokens, aumento do determinismo e pouca conversa)
+        # Técnicas aplicadas: Instruções declarativas concisas, pouca redundância de tokens e pouca margem a variações.
+        self.contexto_thiago: str = """Você é um validador de ATS extremamente técnico e rigoroso. Avalie a aderência de vagas ao perfil do candidato Thiago.
 
-        REGRAS DE PONTUAÇÃO (0 a 100):
-        - 90 a 100: Match perfeito para Dados, BI ou Automação Júnior. Pede as ferramentas que ele domina (Python, SQL, n8n, Power BI).
-        - 70 a 89: Match muito bom. Analista de Negócios/Processos ou vaga de dados que pede algumas coisas que ele ainda está aprendendo.
-        - 40 a 69: Match parcial. Pede experiência sênior que ele não tem, ou exige inglês fluente mandatório.
-        - 0 a 39: Baixa aderência. Vagas exclusivas de Customer Success, Suporte, Vendas, ou que exijam stacks totalmente diferentes (ex: Java, C#, Front-end puro).
+PERFIL DO CANDIDATO:
+- Objetivos: Analista de Dados, Analista de BI, Analista de Automação (nível Júnior).
+- Habilidades: SQL, Python, Excel, Power BI, Google Looker Studio, n8n, APIs REST, Webhooks, Git, GitHub.
+- Formação: Análise de Dados e Big Data Science (conclusão em 2026).
+- Idioma: Inglês básico.
+- Restrição crítica: Vagas de suporte, atendimento, vendas, customer success (CS/CX) devem receber nota < 40, mesmo com experiência anterior. Foco exclusivo em transição para dados/automação.
 
-        SAÍDA OBRIGATÓRIA:
-        Você deve retornar EXCLUSIVAMENTE um objeto JSON válido, sem marcações markdown, com as chaves:
-        {
-            "score": <numero_inteiro>,
-            "justificativa": "<texto curto de até 3 linhas explicando o motivo da nota, falando diretamente para o Thiago>"
-        }
-        """
+REGRAS DE PONTUAÇÃO (0-100):
+- [90-100]: Match ideal. Dados/BI/Automação Jr que exige Python, SQL, n8n ou Power BI.
+- [70-89]: Match muito bom. Dados/BI com requisitos adicionais em aprendizado ou Analista de Processos/Negócios.
+- [40-69]: Match parcial. Exige experiência sênior, muitas tecnologias adicionais ou inglês fluente mandatório.
+- [0-39]: Baixa aderência. Suporte, CS/CX, vendas ou tecnologias não dominadas (ex. Java, C#).
 
-    def avaliar_vaga(self, titulo: str, empresa: str, descricao: str) -> dict:
+JSON SCHEMA:
+{
+  "score": integer,
+  "justificativa": "Texto conciso de até 3 linhas focado na aderência técnica, falando diretamente ao Thiago."
+}
+
+Exemplo 1 (Sucesso):
+Input: {"titulo": "Analista de Dados Júnior", "empresa": "TechCorp", "descricao": "Dashboard Power BI, SQL e Python."}
+Output: {"score": 95, "justificativa": "Thiago, esta vaga é perfeita. Ela exige exatamente sua stack principal (Power BI, SQL e Python) em nível Júnior."}
+
+Exemplo 2 (Penalidade):
+Input: {"titulo": "Analista de Suporte Técnico", "empresa": "Help S/A", "descricao": "Atendimento ao cliente e suporte de sistemas de CRM."}
+Output: {"score": 20, "justificativa": "Thiago, esta vaga deve ser evitada. O foco é suporte e atendimento, o que vai contra o seu objetivo de transição para dados."}
+
+REQUISITO DE SAÍDA: Retorne APENAS o JSON especificado, sem markdown, tags ```json ou qualquer outro texto."""
+
+    def avaliar_vaga(self, titulo: str, empresa: str, descricao: str) -> ScoreResult:
         """Envia os dados da vaga para o Gemini e retorna o score formatado."""
-        prompt_usuario = f"TÍTULO: {titulo}\nEMPRESA: {empresa}\nDESCRIÇÃO: {descricao}"
+        # Formato de entrada estruturado em JSON para maior consistência e determinismo
+        prompt_usuario = json.dumps({
+            "titulo": titulo,
+            "empresa": empresa,
+            "descricao": descricao
+        }, ensure_ascii=False)
+        
+        logger.info("Analisando vaga com o novo SDK do Gemini: %s (%s)...", titulo, empresa)
         
         try:
-            print(f"🧠 Analisando vaga com o novo SDK do Gemini: {titulo} ({empresa})...")
-            
-            # A chamada moderna da API
             resposta = self.client.models.generate_content(
                 model=self.modelo_nome,
                 contents=prompt_usuario,
                 config=types.GenerateContentConfig(
                     system_instruction=self.contexto_thiago,
-                    response_mime_type="application/json"
+                    response_mime_type="application/json",
+                    temperature=0.0  # Maximiza o determinismo das pontuações e explicações
                 )
             )
             
-            # Converte a string JSON que o Gemini devolveu em um dicionário Python
-            dados_estruturados = json.loads(resposta.text)
+            if not resposta or not resposta.text:
+                raise ValueError("Resposta da API do Gemini retornou vazia ou nula.")
+                
+            dados_estruturados: ScoreResult = json.loads(resposta.text)
             return dados_estruturados
             
+        except APIError as e:
+            logger.error("Erro específico da API do Gemini: %s", e)
+            return {
+                "score": 0, 
+                "justificativa": "Falha na comunicação com o serviço de inteligência artificial (Gemini)."
+            }
+        except json.JSONDecodeError as e:
+            logger.error("Erro ao decodificar JSON retornado pelo Gemini: %s", e)
+            return {
+                "score": 0, 
+                "justificativa": "A inteligência artificial retornou um formato de dados inválido."
+            }
         except Exception as e:
-            print(f"❌ Erro ao avaliar vaga com o Gemini: {e}")
-            return {"score": 0, "justificativa": f"Erro na análise via API: {e}"}
+            logger.error("Erro inesperado ao avaliar vaga com o Gemini: %s", e)
+            return {
+                "score": 0, 
+                "justificativa": f"Ocorreu um erro inesperado no processamento da vaga: {e}"
+            }
 
 # ==========================================
 # BLOCO DE TESTE ISOLADO

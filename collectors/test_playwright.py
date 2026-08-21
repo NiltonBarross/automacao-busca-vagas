@@ -1,50 +1,46 @@
-from playwright.sync_api import sync_playwright
-from base_collector import BaseCollector
+import pytest
+from unittest.mock import MagicMock
+from typing import List, Dict, Any
+from collectors.gupy_collector import GupyCollector
 
-# Nossa classe de teste HERDA as regras do BaseCollector
-class TesteNavegador(BaseCollector):
+@pytest.fixture
+def gupy_collector() -> GupyCollector:
+    """Fixture do pytest que instacia o GupyCollector, cuidando do setup e teardown do navegador."""
+    collector = GupyCollector()
+    collector.iniciar_navegador()
+    yield collector
+    collector.fechar_navegador()
+
+def test_inicializacao_gupy_collector(gupy_collector: GupyCollector) -> None:
+    """Valida se a classe é instanciada e se os objetos de sessão do Playwright foram criados."""
+    assert gupy_collector is not None
+    assert gupy_collector.playwright is not None
+    assert gupy_collector.navegador is not None
+    assert gupy_collector.pagina is not None
+
+def test_buscar_vagas_contrato_tipo_retorno(gupy_collector: GupyCollector) -> None:
+    """Teste de contrato que garante que o retorno de buscar_vagas é uma lista em conformidade com o tipo List[Dict[str, Any]]."""
+    # Usando Mock para evitar realizar uma chamada real à rede e manter os testes determinísticos e rápidos
+    gupy_collector.pagina = MagicMock()
+    gupy_collector.pagina.goto = MagicMock()
+    gupy_collector.pagina.wait_for_load_state = MagicMock()
     
-    # Somos obrigados a criar esta função, senão o BaseCollector gera erro
-    def buscar_vagas(self, termo_busca: str, localizacao: str):
-        print("Iniciando os motores do Playwright...")
-        
-        # Inicia o gerenciador de contexto do Playwright
-        with sync_playwright() as p:
-            # Lança o navegador Chromium. 
-            # headless=False faz o navegador aparecer fisicamente na sua tela!
-            print("Abrindo o navegador...")
-            navegador = p.chromium.launch(headless=False)
-            
-            pagina = navegador.new_page()
-            
-            print("Acessando o site de exemplo...")
-            pagina.goto("https://example.com")
-            
-            # Extrai uma informação real da internet (o título da página)
-            titulo_pagina = pagina.title()
-            print(f"Sucesso! Título capturado: '{titulo_pagina}'")
-            
-            # Fecha o navegador para não consumir memória
-            navegador.close()
+    # Mock do localizador de botões para evitar loops infinitos de paginação
+    mock_locator_botao = MagicMock()
+    mock_locator_botao.count.return_value = 0
+    gupy_collector.pagina.locator.return_value = mock_locator_botao
 
-            # Usa o método herdado da classe base para formatar o dado!
-            vaga_falsa = self.formatar_vaga(
-                id_vaga="id-teste-001",
-                titulo=titulo_pagina,
-                empresa="Playwright Inc.",
-                localizacao=localizacao,
-                descricao="Teste de infraestrutura do sistema de coleta."
-            )
-            
-            return [vaga_falsa]
-
-# ==========================================
-# EXECUÇÃO DO TESTE
-# ==========================================
-if __name__ == "__main__":
-    robo = TesteNavegador()
-    resultado = robo.buscar_vagas(termo_busca="Teste", localizacao="Brasil")
+    # Executa a busca
+    vagas: List[Dict[str, Any]] = gupy_collector.buscar_vagas(termo_busca="Teste", localizacao="Rio de Janeiro")
     
-    print("\n--- Resultado Formatado pela Classe Base ---")
-    print(resultado)
+    # Asserções de contrato
+    assert isinstance(vagas, list)
+    if len(vagas) > 0:
+        for vaga in vagas:
+            assert isinstance(vaga, dict)
+            assert "id_vaga" in vaga
+            assert "Titulo" in vaga
+            assert "Empresa" in vaga
+            assert "Localizacao" in vaga
+            assert "Descricao" in vaga
 

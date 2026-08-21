@@ -1,66 +1,81 @@
+import logging
 import gspread
 from google.oauth2.service_account import Credentials
 from pathlib import Path
+from typing import Optional
+
+# Configuração de logger
+logger = logging.getLogger(__name__)
 
 # ==========================================
-# 1. CONFIGURAÇÃO DE CAMINHOS (PATH RESOLUTION)
+# 1. CONFIGURAÇÃO DE CAMINHOS E CONSTANTES
 # ==========================================
-# Descobre dinamicamente onde este arquivo (sheets_client.py) está e sobe duas pastas
-# para achar a raiz do projeto.
 DIRETORIO_ATUAL = Path(__file__).resolve().parent
 RAIZ_DO_PROJETO = DIRETORIO_ATUAL.parent
 CAMINHO_CREDENCIAIS = RAIZ_DO_PROJETO / "config" / "google_credentials.json"
 
-# ==========================================
-# 2. ESCOPOS DE PERMISSÃO
-# ==========================================
-# Dizemos ao Google o que nosso robô quer fazer (ver e editar planilhas e drive)
+NOME_PLANILHA_PADRAO = "Job_Hunter_Database"
+
 SCOPES = [
     "https://www.googleapis.com/auth/spreadsheets",
     "https://www.googleapis.com/auth/drive"
 ]
 
-def testar_conexao():
+# ==========================================
+# 2. CONSTRUTOR DO CLIENTE (FACTORY)
+# ==========================================
+def obter_cliente_sheets() -> Optional[gspread.Client]:
     """
-    Função inicial para testar a comunicação entre o Python e o Google Sheets.
+    Autentica no Google Cloud e retorna o cliente do Google Sheets.
+    Pode ser importado por outros módulos (como o db_manager).
     """
-    print("Iniciando teste de conexão com o banco de dados (Google Sheets)...")
-    
     try:
-        # Passo A: Autenticação
-        print(f"Procurando credenciais em: {CAMINHO_CREDENCIAIS}")
         credenciais = Credentials.from_service_account_file(
             CAMINHO_CREDENCIAIS, scopes=SCOPES
         )
-        
-        # Passo B: Autorização com gspread
         cliente = gspread.authorize(credenciais)
+        logger.info("Conexão com Google Sheets autenticada com sucesso.")
+        return cliente
         
-        # Passo C: Abrir a Planilha
-        nome_planilha = "Job_Hunter_Database"
-        print(f"Tentando acessar a planilha: '{nome_planilha}'...")
-        planilha = cliente.open(nome_planilha)
+    except FileNotFoundError:
+        logger.error("ERRO: Arquivo de credenciais não encontrado em: %s", CAMINHO_CREDENCIAIS)
+        return None
+    except Exception as erro:
+        logger.error("ERRO INESPERADO na autenticação do Google Sheets: %s", erro)
+        return None
+
+# ==========================================
+# 3. TESTE ISOLADO E SEGURO (SOMENTE LEITURA)
+# ==========================================
+def testar_conexao() -> None:
+    """Função isolada para testar a comunicação direta sem alterar dados."""
+    logger.info("Iniciando teste de conexão com o banco de dados...")
+    
+    cliente = obter_cliente_sheets()
+    
+    if not cliente:
+        logger.error("Teste falhou devido a erro de autenticação.")
+        return
+
+    try:
+        logger.info("Tentando acessar a planilha: '%s'...", NOME_PLANILHA_PADRAO)
+        planilha = cliente.open(NOME_PLANILHA_PADRAO)
         aba_principal = planilha.sheet1
         
-        # Passo D: Teste de Escrita (Escrevendo nas células A1 e B1)
-        print("Escrevendo dados de teste...")
-        aba_principal.update_acell('A1', 'Sistema Job Hunter')
-        aba_principal.update_acell('B1', 'Conexão Bem Sucedida!')
+        # Teste de LEITURA (100% seguro, não altera dados, não apaga cabeçalhos)
+        titulo_da_planilha = planilha.title
+        quantidade_linhas = len(aba_principal.get_all_values())
         
-        print("✅ SUCESSO! A conexão foi estabelecida e os dados foram gravados.")
-        print("Vá até o seu Google Drive e abra a planilha para conferir.")
-
-    # Tratamento de erros específicos:
-    except FileNotFoundError:
-        print("❌ ERRO: Arquivo 'google_credentials.json' não encontrado na pasta config.")
-        print("Verifique se o nome do arquivo está exato e se ele está dentro de /config.")
+        logger.info("✅ SUCESSO! Conexão estabelecida com a planilha '%s'.", titulo_da_planilha)
+        logger.info("A planilha possui atualmente %d linhas preenchidas.", quantidade_linhas)
+        
     except gspread.exceptions.SpreadsheetNotFound:
-        print(f"❌ ERRO: A planilha '{nome_planilha}' não foi encontrada.")
-        print("Verifique se você criou a planilha com esse nome exato e se compartilhou com o e-mail do robô.")
+        logger.error("ERRO: A planilha '%s' não foi encontrada. Verifique o compartilhamento.", NOME_PLANILHA_PADRAO)
     except Exception as erro:
-        print(f"❌ ERRO INESPERADO: Ocorreu um erro não mapeado: {erro}")
+        logger.error("ERRO INESPERADO durante o teste de leitura: %s", erro)
 
-# Esta linha garante que o teste só rode se executarmos este arquivo diretamente
 if __name__ == "__main__":
+    # Configuração básica de log para quando rodar o teste direto no terminal
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
     testar_conexao()
-
+    
