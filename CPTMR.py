@@ -35,15 +35,14 @@ def orquestrar_sistema() -> None:
     print("="*40)
     
     termos_estrategicos: List[str] = [
-        "Analista de requisitos"
-        "Analista de automação"        
-        # "Analista de Dados",
-        # "Analista de BI",
-        # "Automação",
-        # "N8N",
-        # "Analista de Processos",
-        # "Analista de Negócios",
-        # "Business Analyst"
+        "Analista de automação",       
+        "Analista de Dados",
+        "Analista de BI",
+        "Automação",
+        "N8N",
+        "Analista de Processos",
+        "Analista de Negócios",
+        "Business Analyst"
     ]
     vagas_salvas_total: int = 0
     
