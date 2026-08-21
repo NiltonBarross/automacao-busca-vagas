@@ -1,10 +1,10 @@
 import pytest
 from unittest.mock import MagicMock
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Generator
 from collectors.gupy_collector import GupyCollector
 
 @pytest.fixture
-def gupy_collector() -> GupyCollector:
+def gupy_collector() -> Generator[GupyCollector, None, None]:
     """Fixture do pytest que instacia o GupyCollector, cuidando do setup e teardown do navegador."""
     collector = GupyCollector()
     collector.iniciar_navegador()
