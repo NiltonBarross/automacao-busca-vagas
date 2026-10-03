@@ -1,58 +1,76 @@
-# 🚀 Job Hunter AI - Automação e Scoring de Vagas
+# Busca Vagas — aplicativo local
 
-Um orquestrador inteligente focado em automação de web scraping, integração de dados e análise de inteligência artificial (LLM) para encontrar, classificar e salvar vagas de emprego perfeitamente aderentes a um perfil profissional específico.
+Configure seu perfil no navegador, salve buscas na Gupy e revise anúncios com evidências.
+O MVP usa Python, Streamlit, SQLite e Playwright. Não exige credenciais Google ou serviços pagos.
 
-## 🧠 Visão Geral da Arquitetura
+## Executar no Windows
 
-O sistema foi construído utilizando os princípios de **Clean Code**, **Injeção de Dependências** e **Defesa em Profundidade (Defense in Depth)**. Ele se divide em três camadas principais:
+Requisito: Python 3.11 ou superior. Nesta máquina o ambiente `.venv` já está preparado.
 
-1. **Camada de Coleta (Playwright):** Utiliza interceptação de rede (Network Interception) para contornar o carregamento lento de Single Page Applications (SPAs) como a Gupy, capturando o JSON direto do backend para maior resiliência.
-2. **Camada de Inteligência (Google Gemini 2.5 Flash):** Aplica técnicas avançadas de Prompt Engineering (Few-Shot Prompting, Compressão de Tokens e Temperature 0.0) para avaliar as vagas de forma determinística e retornar um JSON estrito com o score de aderência.
-3. **Camada de Persistência (Google Sheets API):** Gerencia a inserção e atualização em lote (batch update) das vagas analisadas, contando com tratamentos de queda de rede e validação de duplicidade.
+```powershell
+.\scripts\start.ps1
+```
 
-## 🛠️ Tecnologias Utilizadas
+Abra http://127.0.0.1:8501. Preencha **Perfil**, salve **Critérios** e abra **Executar e revisar**.
+Competências precisam de domínio declarado. Para híbrido/presencial informe cidades como `Cidade/UF`.
+Remoto é tratado separadamente. A busca só começa ao clicar em **Iniciar busca**.
 
-* **Linguagem:** Python 3
-* **Automação & Scraping:** Playwright
-* **Inteligência Artificial:** Google GenAI SDK (Gemini 2.5 Flash)
-* **Banco de Dados / Nuvem:** Google Sheets API, Google Cloud IAM (Service Accounts)
-* **Boas Práticas:** Type Hinting (PEP 484), Logging profissional, `pytest` para testes de contrato.
+Instalação manual reproduzível:
 
-## ⚙️ Pré-requisitos e Instalação
+```powershell
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe -m pip install -e . --no-deps
+.\.venv\Scripts\python.exe -m playwright install chromium
+.\.venv\Scripts\python.exe -m streamlit run app.py --server.address 127.0.0.1 --browser.gatherUsageStats false
+```
 
-Para rodar este projeto localmente, você precisará configurar chaves de acesso do Google Cloud e do Google AI Studio.
+## Comportamento
 
-1. **Clone o repositório:**
-   ```bash
-   git clone [https://github.com/seu-usuario/job-hunter-ai.git](https://github.com/seu-usuario/job-hunter-ai.git)
-   cd job-hunter-ai
+- Perfil versionado, várias buscas salvas e critérios copiados para cada execução.
+- Limites de tempo/páginas/vagas, progresso, falhas por operação e cancelamento cooperativo.
+- Descrição/requisitos via JSON-LD; fallback textual fica sinalizado como incompleto e sem nota.
+- Score experimental com evidências e pesos editáveis; dados ausentes geram pendências.
+- Deduplicação, histórico por execução, favoritos, observações, estado de candidatura e CSV.
 
-   1 - Crie e ative o ambiente virtual
-   python -m venv venv
+A nota ordena a revisão e não estima chance de contratação. Os pesos ainda precisam de revisão humana.
+As regras usam correspondências literais e sinônimos configurados, não interpretação semântica completa.
+Condições de formação, idiomas, domínio avançado e vagas afirmativas são apresentadas para confirmação.
+`Também para PcD` não é automaticamente considerado restrição de elegibilidade.
+A ausência de um anúncio numa busca não prova seu encerramento.
 
-# No Windows:
-##venv\Scripts\activate - Retire '#' para testar.
+Cancelar preserva anúncios já gravados e espera a operação corrente terminar (timeout de até 30 s).
+Bloqueios de acesso são registrados sem tentativa de contorno. A fonte pode mudar e exigir ajuste.
+Anúncios excluídos ficam disponíveis na opção **Mostrar vagas excluídas pelos critérios**.
 
-Instale as dependências e os navegadores do Playwright:
-pip install -r requirements.txt
-playwright install
+## Dados privados
 
-Configuração de Variáveis de Ambiente:
-Crie um arquivo .env na raiz do projeto e adicione sua chave da IA:
-GEMINI_API_KEY=sua_chave_aqui
+Banco padrão: `data/jobs.sqlite`. Perfil, bancos, exportações, credenciais, `.codegraph/` e o plano
+local original ficam fora do Git. SQLite contém dados pessoais em texto; proteja os arquivos e
+faça backup com o aplicativo parado. Nunca publique o conteúdo de `data/`.
+O diretório deste checkout está no OneDrive: a sincronização dessa pasta depende da configuração
+pessoal do OneDrive. Para manter o banco fora dela, configure `JOB_HUNTER_DB` no ambiente antes de abrir.
+`.env.example` documenta a variável; o aplicativo não carrega `.env` automaticamente.
 
-Coloque o arquivo de credenciais do Google Cloud Service Account em config/google_credentials.json.
+IA permanece desligada. Nenhum perfil é enviado a um provedor de IA. Candidaturas são feitas por você.
+IA opcional, Google Sheets e novas fontes ficam para depois da validação do MVP.
 
-(Nota: Estes arquivos estão no .gitignore por segurança e não acompanham o repositório).
+## Verificar
 
-Para rodar o fluxo completo (Coleta -> Avaliação IA -> Banco de Dados):
-python CPTMR.py
+```powershell
+.\.venv\Scripts\python.exe -m pytest -q
+# Opcional: coleta real pequena, separada dos testes offline
+.\.venv\Scripts\python.exe scripts\smoke.py
+```
 
-Tratamento de Erros e Resiliência:
-Scraper: Retries automáticos e esperas explícitas substituindo time.sleep.
+Os testes offline usam exemplos fictícios e páginas interceptadas; não consultam a rede Gupy.
+O smoke grava um relatório técnico sem perfil pessoal em `data/smoke-report.json`.
+Veja [validação](specs/001-busca-local/validation.md), [especificação](specs/001-busca-local/spec.md)
+e [desenvolvimento](docs/development.md).
 
-IA: Bloco try/except específico para lidar com falhas de JSON, timeouts ou indisponibilidade da API do Google, garantindo que o loop de vagas nunca seja interrompido abruptamente.
+## Origem e licença
 
-Database: Proteção de conexão com padrão Singleton (Factory Method) para evitar sobrecarga na API do Google Sheets.
-
-Desenvolvido por Thiago Marques Ramalho como projeto de portfólio para a área de Dados e Automação.
+Fork de [othiagom/automacao-busca-vagas](https://github.com/othiagom/automacao-busca-vagas),
+de Thiago Marques Ramalho, baseline `562daf8` (21/08/2026). Mantém histórico, créditos e licença MIT.
+O fluxo anterior com perfil fixo, Gemini e Sheets foi substituído; está preservado no histórico Git.
+Veja [LICENSE](LICENSE). Esta versão adiciona a interface e o armazenamento local.
