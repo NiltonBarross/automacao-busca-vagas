@@ -19,3 +19,4 @@ config/google_credentials.json
 *.db
 *.log
 PLANO_PROJETO_BUSCA_VAGAS.md
+/Profile.pdf

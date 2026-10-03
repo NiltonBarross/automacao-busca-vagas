@@ -44,3 +44,15 @@ O código novo corresponde aos comportamentos pedidos, com stdlib onde suficient
 Pesos 35/45/20 são experimentais e configuráveis. Ainda falta calibração humana numa amostra.
 Fallback DOM não recebe score. Formação/idiomas/domínio avançado exigem revisão explícita.
 IA opcional, Sheets e fontes adicionais foram adiados conforme a ordem do plano de entrada.
+
+## Atualização Usuário — 03/10/2026
+Cadastro ampliado com contato, localização, links, título/resumo profissional, formação, cursos,
+experiências, competências e idiomas. Consulta ao texto do currículo e download do original local.
+Currículo utilizado somente no armazenamento privado; PDF, texto, importador e capturas ignorados pelo Git.
+Níveis de domínio ausentes continuam não informados; anos de experiência não foram calculados.
+Campos previamente preenchidos foram preservados. A cidade do cadastro não altera critérios de busca.
+
+14 testes passaram, incluindo compatibilidade com perfis antigos, edição sem perder currículo,
+persistência dos novos dados, formulário e pendência de competência com nível não informado.
+Navegador confirmou Usuário → Cadastro/Currículo, campos preenchidos e download disponível.
+Servidor atualizado após confirmar ausência de buscas em execução.

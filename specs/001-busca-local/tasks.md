@@ -43,3 +43,9 @@ Exemplos paralelos: testes storage e fixtures; CSV e documentação. Não exigem
 ## Implementation Strategy
 MVP incremental. IA/Sheets/novas fontes após validação humana; nenhuma estrutura especulativa.
 Ponytail full: sqlite3, dataclasses, threading, csv; sem ORM, factories ou protocolos de uma implementação.
+
+## Phase 7: Cadastro Usuário — solicitação de 03/10/2026
+- [x] T020 [US1] Expandir Profile com contato, localização, resumo, cursos e currículo em src/job_hunter/domain/models.py.
+- [x] T021 [US1] Criar Usuário com Cadastro/Currículo e salvar sem perder documento em src/job_hunter/ui/app.py.
+- [x] T022 [US1] Preservar perfis antigos e confirmar domínio ausente em tests/integration/test_storage.py e src/job_hunter/scoring/rules.py.
+- [x] T023 [US1] Verificar formulários/consulta e proteção do PDF em tests/integration/test_ui.py e .gitignore.

@@ -11,8 +11,11 @@ Requisito: Python 3.11 ou superior. Nesta máquina o ambiente `.venv` já está 
 .\scripts\start.ps1
 ```
 
-Abra http://127.0.0.1:8501. Preencha **Perfil**, salve **Critérios** e abra **Executar e revisar**.
-Competências precisam de domínio declarado. Para híbrido/presencial informe cidades como `Cidade/UF`.
+Abra http://127.0.0.1:8501. Preencha **Usuário**, salve **Critérios** e abra **Executar e revisar**.
+Em **Usuário → Cadastro**, reúna contato, cidade/UF, links, resumo, formação, certificações,
+experiências, competências e idiomas. **Usuário → Currículo** permite consultar o texto e baixar
+o documento original registrado localmente. Campos ausentes e domínio não informado exigem revisão.
+Competências aceitam domínio não informado, básico, intermediário ou avançado. Para híbrido/presencial informe cidades como `Cidade/UF`.
 Remoto é tratado separadamente. A busca só começa ao clicar em **Iniciar busca**.
 
 Instalação manual reproduzível:

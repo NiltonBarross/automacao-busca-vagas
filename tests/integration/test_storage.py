@@ -1,6 +1,7 @@
 from job_hunter.domain.models import Job, Profile, SearchConfig
 from job_hunter.storage.sqlite import Store
 from job_hunter.exports.csv import export_csv
+import json
 
 
 def test_profile_versions_and_search_reopen(tmp_path):
@@ -35,3 +36,19 @@ def test_dedup_state_history_and_csv(tmp_path):
     assert store.results(first)[0]["job"]["description"] == "SQL"
     exported = export_csv(rows).decode("utf-8-sig")
     assert "'=1+1" in exported and "'@note" in exported
+
+
+def test_legacy_profile_and_user_resume_survive_edit(tmp_path):
+    store = Store(tmp_path / "db.sqlite")
+    with store.connection() as db:
+        db.execute("INSERT INTO profiles VALUES(?,?,?)", (1, json.dumps({"name": "Pessoa Fictícia", "version": 1}), "2026-01-01"))
+    p = store.load_profile()
+    assert p.name == "Pessoa Fictícia" and p.email == ""
+    p.email = "pessoa@example.org"
+    p.city, p.uf = "Cidade Fictícia", "SP"
+    p.skills = {"SQL": "não informado"}
+    p.resume_text, p.resume_filename = "Currículo fictício sem dados pessoais reais.", "ficticio.pdf"
+    store.save_profile(p)
+    reopened = Store(store.path).load_profile()
+    assert reopened.resume_text == p.resume_text and reopened.resume_filename == "ficticio.pdf"
+    assert reopened.email == p.email and reopened.skills == p.skills

@@ -44,7 +44,7 @@ A pessoa filtra e ordena resultados, abre anúncios, marca favoritos/candidatura
 ## Requirements *(mandatory)*
 
 ### Functional Requirements
-- **FR-001**: Salvar/editar perfil privado versionado e critérios sem código ou credenciais.
+- **FR-001**: Salvar/editar cadastro privado versionado na aba Usuário e critérios sem código ou credenciais. Cadastro inclui contato, cidade/UF, links, título/resumo profissional, formação, certificações, experiências, competências, idiomas e consulta ao currículo local. Domínio não informado é permitido sem inferir nível.
 - **FR-002**: Critérios incluem termos/sinônimos, senioridade, modalidades, cidades/UF, salário opcional e tratamento de ausência, exclusões obrigatórias/preferências e limites.
 - **FR-003**: Cada execução preserva snapshots, status, contadores, vínculos e erros por termo.
 - **FR-004**: Coletar anúncios com limites, timeout, retentativa transitória limitada e progresso real; bloqueio encerra sem contorno.

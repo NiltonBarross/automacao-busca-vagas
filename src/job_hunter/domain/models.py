@@ -9,7 +9,7 @@ from urllib.parse import unquote, urlsplit, urlunsplit
 MODES = ["remoto", "híbrido", "presencial", "não informada"]
 SENIORITIES = ["estágio", "júnior", "pleno", "sênior", "liderança", "não informada"]
 STATES = ["nova", "revisar", "favorita", "candidatura registrada", "descartada"]
-LEVELS = ["básico", "intermediário", "avançado"]
+LEVELS = ["não informado", "básico", "intermediário", "avançado"]
 
 
 def now():
@@ -54,12 +54,30 @@ class Profile:
     seniorities: list = field(default_factory=list)
     extra: str = ""
     version: int = 0
+    email: str = ""
+    phone: str = ""
+    city: str = ""
+    uf: str = ""
+    linkedin: str = ""
+    portfolio: str = ""
+    headline: str = ""
+    summary: str = ""
+    certifications: str = ""
+    resume_text: str = ""
+    resume_filename: str = ""
 
     def validate(self):
         if self.years is not None and not 0 <= self.years <= 80:
             raise ValueError("Anos de experiência devem estar entre 0 e 80.")
         if any(not k.strip() or v not in LEVELS for k, v in self.skills.items()):
-            raise ValueError("Cada competência exige nome e domínio básico/intermediário/avançado.")
+            raise ValueError("Cada competência exige nome e domínio não informado/básico/intermediário/avançado.")
+        if self.email and not re.fullmatch(r"[^\s@]+@[^\s@]+\.[^\s@]+", self.email):
+            raise ValueError("Confira o endereço de e-mail.")
+        if self.uf and not re.fullmatch(r"[A-Z]{2}", self.uf):
+            raise ValueError("Informe a UF com duas letras, como CE.")
+        for link in [self.linkedin, self.portfolio]:
+            if link and (urlsplit(link).scheme not in ["http", "https"] or not urlsplit(link).hostname):
+                raise ValueError("Links devem começar com http:// ou https://.")
         if any(s not in SENIORITIES for s in self.seniorities):
             raise ValueError("Senioridade declarada inválida.")
 

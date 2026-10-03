@@ -48,3 +48,14 @@ def test_missing_salary_and_explicit_affirmative():
     assert evaluate(job, Profile(), config)["eligibility"] != "excluída"
     job.description = "Vaga exclusiva para PcD."
     assert any("afirmativa" in s.lower() for s in evaluate(job, Profile(), config)["pending"])
+
+
+def test_imported_skill_does_not_claim_proficiency():
+    profile = Profile(skills={"SQL": "não informado"})
+    profile.validate()
+    job = Job(url="https://fictional.gupy.io/jobs/123", title="BI", requirements="SQL obrigatório")
+    result = evaluate(job, profile, SearchConfig(terms=["BI"]))
+    assert any("domínio de SQL não informado" in item for item in result["pending"])
+    profile.email = "endereço inválido"
+    with pytest.raises(ValueError, match="e-mail"):
+        profile.validate()

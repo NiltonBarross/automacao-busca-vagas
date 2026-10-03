@@ -1,6 +1,9 @@
 # Data model
 - Profile: nome opcional, formação, experiências, competências com domínio, idiomas, anos opcionais,
   senioridades confirmadas, complementos; versão monotônica e created_at.
+  Cadastro Usuário: email/telefone, cidade/UF, LinkedIn/portfólio, título/resumo, certificações,
+  texto e nome original do currículo. Campos novos têm defaults para compatibilidade com versões antigas.
+  Domínio de competência pode ser não informado e gera pendência de confirmação.
 - SearchConfig: nome/termos/sinônimos, modalidades/senioridades, cidades Cidade/UF, mínimo opcional,
   salário ausente (pendência ou excluir), filtros localização/salário (obrigatório ou preferência),
   evitar obrigatório/preferência, afirmativa (sinalizar ou excluir), limites e pesos somando 100.

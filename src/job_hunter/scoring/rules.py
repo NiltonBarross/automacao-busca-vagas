@@ -85,6 +85,8 @@ def evaluate(job, profile, config):
             score += technical_points
             evidence.append({"component": "competência", "points": round(technical_points, 2), "job": line,
                              "profile": f"{declared}: {profile.skills[declared]} declarado"})
+            if profile.skills[declared] == "não informado":
+                pending.append(f"Nível de domínio de {skill} não informado; confirmar.")
             if re.search(r"avancad|solida|dominio", fold(line)) and profile.skills[declared] != "avançado":
                 pending.append(f"Domínio de {skill} precisa de confirmação: {line}")
         else:

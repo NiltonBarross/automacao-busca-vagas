@@ -25,29 +25,55 @@ def resources(path):
 
 def profile_form(store):
     profile = store.load_profile()
-    st.subheader("Seu perfil")
-    st.caption("Informe apenas o que você possui. Áreas de interesse ficam nos critérios de busca. Dados salvos neste computador.")
-    with st.form("profile"):
+    st.subheader("Usuário")
+    st.caption("Reúna seus dados pessoais e profissionais. Revise os dados do currículo antes de usá-los nas buscas. Tudo é salvo localmente.")
+    cadastro, curriculo = st.tabs(["Cadastro", "Currículo"])
+    with curriculo:
+        if profile.resume_text:
+            st.caption(f"Documento registrado: {profile.resume_filename}. O texto original é preservado para consulta; edite os dados na aba Cadastro.")
+            resume_path = store.path.parent / "curriculo" / "original.pdf"
+            if resume_path.is_file():
+                st.download_button("Baixar currículo original", resume_path.read_bytes(), profile.resume_filename or "curriculo.pdf", "application/pdf")
+            st.text(profile.resume_text)
+        else:
+            st.info("Nenhum currículo registrado neste cadastro.")
+    with cadastro, st.form("profile"):
+        st.markdown("### Dados pessoais e contato")
         name = st.text_input("Nome (opcional)", profile.name)
+        left, right = st.columns(2)
+        email = left.text_input("E-mail", profile.email)
+        phone = right.text_input("Telefone", profile.phone)
+        city = left.text_input("Cidade", profile.city)
+        uf = right.text_input("UF", profile.uf, max_chars=2)
+        linkedin = st.text_input("LinkedIn", profile.linkedin, placeholder="https://www.linkedin.com/in/seu-perfil")
+        portfolio = st.text_input("Portfólio ou site pessoal", profile.portfolio)
+        st.markdown("### Perfil profissional")
+        headline = st.text_input("Título profissional", profile.headline)
+        summary = st.text_area("Resumo profissional", profile.summary)
         education = st.text_area("Formação", profile.education)
+        certifications = st.text_area("Cursos e certificações", profile.certifications)
         experience = st.text_area("Experiências e atividades realizadas", profile.experience)
         skills = st.text_area("Competências declaradas — uma por linha: competência: domínio", "\n".join(f"{k}: {v}" for k, v in profile.skills.items()),
-                              placeholder="SQL: intermediário\nPower BI: avançado", help="Domínio: básico, intermediário ou avançado. Exemplos são fictícios e não preenchidos automaticamente.")
+                              placeholder="SQL: não informado\nPower BI: avançado", help="Domínio: não informado, básico, intermediário ou avançado. O currículo não determina automaticamente seu nível.")
         languages = st.text_area("Idiomas e níveis declarados", profile.languages)
         years_known = st.checkbox("Quero declarar meus anos de experiência", profile.years is not None)
         years = st.number_input("Anos de experiência", min_value=0.0, max_value=80.0, value=float(profile.years or 0), step=0.5)
         seniorities = st.multiselect("Senioridades em que possuo experiência (declaradas)", SENIORITIES[:-1], default=profile.seniorities)
         extra = st.text_area("Informações complementares", profile.extra)
-        save = st.form_submit_button("Salvar perfil", type="primary")
+        save = st.form_submit_button("Salvar dados do usuário", type="primary")
     if save:
         try:
             parsed = {}
             for line in lines(skills):
                 skill, level = line.rsplit(":", 1)
                 parsed[skill.strip()] = level.strip().lower()
-            saved = Profile(name, education, experience, parsed, languages, years if years_known else None, seniorities, extra)
+            saved = Profile(name=name, education=education, experience=experience, skills=parsed, languages=languages,
+                            years=years if years_known else None, seniorities=seniorities, extra=extra,
+                            email=email.strip(), phone=phone.strip(), city=city.strip(), uf=uf.strip().upper(),
+                            linkedin=linkedin.strip(), portfolio=portfolio.strip(), headline=headline, summary=summary,
+                            certifications=certifications, resume_text=profile.resume_text, resume_filename=profile.resume_filename)
             store.save_profile(saved)
-            st.success(f"Perfil salvo — versão {saved.version}.")
+            st.success(f"Dados do usuário salvos — versão {saved.version}.")
         except ValueError as exc:
             st.error(f"Não foi possível salvar. Confira competência: domínio. {exc}")
 
@@ -215,9 +241,9 @@ def main():
     st.caption("Seu perfil, sua busca, evidências para revisar. Aplicação local · IA desativada")
     path = os.environ.get("JOB_HUNTER_DB") or str(Path(__file__).resolve().parents[3] / "data" / "jobs.sqlite")
     store, service = resources(path)
-    page = st.sidebar.radio("Navegação", ["Perfil", "Critérios", "Executar e revisar"])
+    page = st.sidebar.radio("Navegação", ["Usuário", "Critérios", "Executar e revisar"])
     st.sidebar.caption("Os dados ficam neste computador. Candidaturas são feitas por você no site da empresa.")
-    if page == "Perfil":
+    if page == "Usuário":
         profile_form(store)
     elif page == "Critérios":
         search_form(store)
