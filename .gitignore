@@ -8,8 +8,8 @@ build/
 dist/
 .codegraph/
 .codex/
-data/
-exports/
+/data/
+/exports/
 .env
 .env.*
 !.env.example
