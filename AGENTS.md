@@ -14,5 +14,5 @@ If there is no `.codegraph/` directory, skip CodeGraph entirely — indexing is 
 - Execute .venv/Scripts/python.exe -m pytest -q; smoke real é opt-in via scripts/smoke.py.
 - Não ler/indexar/versionar dados pessoais em data/, exportações, .env ou o plano privado.
 - Ponytail full ativo: reutilize stdlib/dependências existentes e mantenha só abstrações necessárias.
-- Domínio/aplicação não dependem de Streamlit. IA e Sheets ficam fora deste MVP.
+- Domínio/aplicação não dependem de Streamlit. IA opcional só sugere termos (autorizada em 05/10/2026); coleta/avaliação funcionam sem IA. Sheets permanece fora deste MVP.
 - Preserve LICENSE e crédito ao original. Reindexe após alterações relevantes com codegraph index.

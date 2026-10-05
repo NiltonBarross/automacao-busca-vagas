@@ -54,3 +54,20 @@ Links /job/ com jobId codificado são convertidos para /jobs/ID, sem parâmetros
 - Validar templates DOM de empresas sem JSON-LD; não atribuir confiança indevida ao fallback.
 - Mais fontes/Sheets via adaptadores opcionais somente quando necessários.
 - IA opcional: consentimento de envio, schema/evidências, cache versionado e erro separado de score.
+
+## Entrega de 05/10/2026
+Groq integrado apenas para sugestão de cargos; urllib/json resolvem chamadas sem dependência nova.
+Provider é uma configuração de endpoint/modelo/chave para a mesma função REST; nenhum SDK ou
+adaptador vazio. Cache limitado em memória, sem guardar chave no banco ou nos snapshots.
+Ponytail full/review aplicado ao diff: controles nativos, catálogo JSON público, dataclasses.replace
+para preservar filtros e reuso do SearchService existente. Não há estrutura especulativa.
+
+Impeccable oficial aplicado remotamente:
+https://github.com/pbakaus/impeccable/blob/main/.agents/skills/impeccable/SKILL.md.
+Referências Operate, polish e craft-floor: navegação horizontal, hierarquia sóbria, tema único,
+controles acessíveis e inspeção desktop/mobile. Launcher indisponível; contexto foi lido diretamente.
+Nenhum runtime de design instalado nem dados privados usados na verificação visual.
+
+Municípios: https://servicodados.ibge.gov.br/api/v1/localidades/municipios?orderBy=nome.
+Snapshot público de 05/10/2026 em domain/municipalities.json (27 UFs, 5.571 municípios).
+Refresh deve preservar metadados, revisar diferenças e validar catálogo; nenhuma chamada durante uso.

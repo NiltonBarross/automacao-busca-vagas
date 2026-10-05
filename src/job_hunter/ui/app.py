@@ -1,9 +1,12 @@
 from pathlib import Path
 from datetime import datetime
+from dataclasses import replace
 from zoneinfo import ZoneInfo
 import os
 import streamlit as st
 from job_hunter.application.search import SearchService
+from job_hunter.application.suggestions import SuggestionService, providers, compact_profile
+from job_hunter.domain.locations import states, state_label, cities as state_cities
 from job_hunter.domain.models import Profile, SearchConfig, MODES, SENIORITIES, STATES, fold
 from job_hunter.storage.sqlite import Store
 from job_hunter.exports.csv import export_csv
@@ -23,6 +26,11 @@ def resources(path):
     return store, SearchService(store)
 
 
+@st.cache_resource
+def suggestions():
+    return SuggestionService()
+
+
 def profile_form(store):
     profile = store.load_profile()
     st.subheader("Usuário")
@@ -37,14 +45,21 @@ def profile_form(store):
             st.text(profile.resume_text)
         else:
             st.info("Nenhum currículo registrado neste cadastro.")
-    with cadastro, st.form("profile"):
+    with cadastro:
         st.markdown("### Dados pessoais e contato")
         name = st.text_input("Nome (opcional)", profile.name)
         left, right = st.columns(2)
         email = left.text_input("E-mail", profile.email)
         phone = right.text_input("Telefone", profile.phone)
-        city = left.text_input("Cidade", profile.city)
-        uf = right.text_input("UF", profile.uf, max_chars=2)
+        ufs = [""] + states()
+        uf = left.selectbox("Estado", ufs, index=ufs.index(profile.uf) if profile.uf in ufs else 0,
+                            format_func=state_label, key="profile_uf")
+        options = [""] + state_cities(uf)
+        if profile.city and uf == profile.uf and profile.city not in options:
+            options.append(profile.city)
+        city = right.selectbox("Cidade", options, index=options.index(profile.city) if uf == profile.uf and profile.city in options else 0,
+                               disabled=not uf, key="profile_city_" + uf,
+                               format_func=lambda value: value or "Selecione uma cidade")
         linkedin = st.text_input("LinkedIn", profile.linkedin, placeholder="https://www.linkedin.com/in/seu-perfil")
         portfolio = st.text_input("Portfólio ou site pessoal", profile.portfolio)
         st.markdown("### Perfil profissional")
@@ -60,7 +75,7 @@ def profile_form(store):
         years = st.number_input("Anos de experiência", min_value=0.0, max_value=80.0, value=float(profile.years or 0), step=0.5)
         seniorities = st.multiselect("Senioridades em que possuo experiência (declaradas)", SENIORITIES[:-1], default=profile.seniorities)
         extra = st.text_area("Informações complementares", profile.extra)
-        save = st.form_submit_button("Salvar dados do usuário", type="primary")
+        save = st.button("Salvar dados do usuário", type="primary", icon=":material/save:")
     if save:
         try:
             parsed = {}
@@ -75,7 +90,7 @@ def profile_form(store):
             store.save_profile(saved)
             st.success(f"Dados do usuário salvos — versão {saved.version}.")
         except ValueError as exc:
-            st.error(f"Não foi possível salvar. Confira competência: domínio. {exc}")
+            st.error(f"Não foi possível salvar. Confira os campos e o formato competência: domínio. {exc}")
 
 
 def search_form(store):
@@ -83,6 +98,16 @@ def search_form(store):
     names = store.search_names()
     selected = st.selectbox("Busca salva", ["Nova busca"] + names)
     c = store.load_search(selected) if selected != "Nova busca" else SearchConfig()
+    st.markdown("### Onde você quer trabalhar?")
+    ufs = st.multiselect("Estados da busca", states(), default=[uf for uf in states() if any(city.endswith("/" + uf) for city in c.cities)],
+                         format_func=state_label, key="search_states_" + selected, placeholder="Selecione um ou mais estados")
+    city_options = [f"{city}/{uf}" for uf in ufs for city in state_cities(uf)]
+    city_options += [city for city in c.cities if city.rsplit("/", 1)[-1] in ufs and city not in city_options]
+    cities = st.multiselect("Cidades da busca", city_options, default=[city for city in c.cities if city in city_options],
+                            key="search_cities_" + selected, disabled=not ufs,
+                            placeholder="Selecione as cidades" if ufs else "Escolha um estado primeiro",
+                            help="Escolha estados e depois uma ou mais cidades. Obrigatório para híbrido/presencial.")
+    st.caption("Catálogo do IBGE disponível offline. Para trabalhar de qualquer lugar, escolha a modalidade remoto.")
     with st.form("config:" + selected):
         name = st.text_input("Nome desta busca", c.name)
         terms = st.text_area("Cargos e termos — um por linha", "\n".join(c.terms), placeholder="Analista de Dados\nAnalista de BI\nPower BI")
@@ -90,7 +115,6 @@ def search_form(store):
                                help="Adicione alternativas também nos termos se quiser que sejam pesquisadas no portal.")
         seniorities = st.multiselect("Senioridades desejadas", SENIORITIES, c.seniorities)
         modes = st.multiselect("Modalidades", MODES, c.modes)
-        cities = st.text_area("Cidades/UF — uma por linha", "\n".join(c.cities), help="Obrigatório para híbrido/presencial. Remoto é tratado separadamente.")
         loc_required = st.checkbox("Localização e modalidade são filtros obrigatórios", c.location_required)
         has_salary = st.checkbox("Configurar salário mínimo mensal em reais", c.min_salary is not None)
         salary = st.number_input("Salário mínimo BRL/mês", min_value=0.0, value=float(c.min_salary or 0), step=100.0)
@@ -115,7 +139,7 @@ def search_form(store):
                 key, values = line.split(":", 1)
                 aliases[key.strip()] = [v.strip() for v in values.split(",") if v.strip()]
             config = SearchConfig(name=name.strip() or "Minha busca", terms=lines(terms), synonyms=aliases,
-                                  seniorities=seniorities, modes=modes, cities=lines(cities), location_required=loc_required,
+                                  seniorities=seniorities, modes=modes, cities=cities, location_required=loc_required,
                                   min_salary=salary if has_salary else None, salary_required=salary_required,
                                   missing_salary=missing, exclude_terms=lines(exclude), deprioritize_terms=lines(avoid),
                                   affirmative=affirmative, max_pages=pages, max_jobs=jobs, max_seconds=seconds, weights=weights)
@@ -183,12 +207,68 @@ def results_view(store, run_id):
             st.success("Acompanhamento salvo.")
 
 
+def assistant_view(store, service, config):
+    profile = store.load_profile()
+    if st.session_state.get("suggestion_profile_version") != profile.version:
+        st.session_state.pop("suggestion", None)
+    with st.container(border=True):
+        st.markdown("### Encontre cargos com seu perfil")
+        st.caption("A IA sugere até quatro termos a partir de um resumo do cadastro e currículo salvos. Seus filtros e limites são mantidos.")
+        with st.expander("Configurar Groq e conferir o resumo enviado"):
+            st.text_input("Chave da API Groq", type="password", key="groq_key",
+                          help="Opcional se GROQ_API_KEY estiver no ambiente. A chave digitada fica apenas nesta sessão.")
+            if os.environ.get("GROQ_API_KEY"):
+                st.caption("Chave Groq configurada no ambiente.")
+            st.caption("Ao sugerir, o resumo abaixo será enviado ao provedor configurado. Contatos são removidos; o currículo completo não é enviado.")
+            st.json(compact_profile(profile))
+            st.link_button("Obter chave no Groq", "https://console.groq.com/keys")
+        chain = providers(st.session_state.get("groq_key", ""))
+        if not chain:
+            st.info("Configure a chave Groq acima para usar IA. Sem chave, você pode usar sugestões locais do seu título e competências.")
+        a, b = st.columns(2)
+        suggest = a.button("Sugerir termos", disabled=service.active(), icon=":material/auto_awesome:")
+        search = b.button("Sugerir e pesquisar", type="primary", disabled=service.active(), icon=":material/search:")
+        if suggest or search:
+            try:
+                replace(config, terms=["validar filtros"]).validate()
+                with st.spinner("Preparando sugestões do seu perfil…"):
+                    result = suggestions().suggest(profile, chain)
+                st.session_state["suggestion"] = result
+                st.session_state["suggestion_profile_version"] = profile.version
+                st.session_state["suggested_terms"] = "\n".join(result["terms"])
+                if search:
+                    suggested = replace(config, name=config.name if config.name.endswith(" · sugerida") else config.name + " · sugerida", terms=result["terms"])
+                    run_id = service.start(store.load_profile(), suggested)
+                    store.save_search(suggested)
+                    st.session_state.update(current_run=run_id, monitoring_run=run_id, chosen_search=suggested.name)
+                    st.rerun()
+            except ValueError as exc:
+                st.error(str(exc))
+        result = st.session_state.get("suggestion")
+        if result:
+            st.caption("Origem: " + result["source"] + (" · reutilizada, sem nova chamada" if result["cached"] else ""))
+            if result["usage"].get("total_tokens"):
+                st.caption(f"Tokens da resposta original: {result['usage']['total_tokens']}.")
+            if result["failures"]:
+                st.warning("O provedor principal falhou; a sugestão veio do fallback. " + " ".join(result["failures"]))
+            st.text_area("Termos sugeridos — você pode editar", key="suggested_terms", height=120)
+            if st.button("Salvar termos sugeridos", disabled=service.active()):
+                try:
+                    updated = replace(config, terms=lines(st.session_state["suggested_terms"]))
+                    store.save_search(updated)
+                    st.session_state["chosen_search"] = updated.name
+                    st.success("Termos salvos. Inicie a busca abaixo quando quiser.")
+                except ValueError as exc:
+                    st.error(str(exc))
+
+
 def execution_view(store, service):
     st.subheader("Executar e revisar")
     names = store.search_names()
     if names:
         preferred = st.session_state.get("chosen_search")
         selected = st.selectbox("Critérios para executar", names, index=names.index(preferred) if preferred in names else 0)
+        assistant_view(store, service, store.load_search(selected))
         if st.button("Iniciar busca", type="primary", disabled=service.active()):
             try:
                 run_id = service.start(store.load_profile(), store.load_search(selected))
@@ -198,7 +278,7 @@ def execution_view(store, service):
             except ValueError as exc:
                 st.error(str(exc))
     else:
-        st.info("Salve os critérios para iniciar uma busca real.")
+        st.info("Salve os critérios para definir localização, salário e limites antes de pesquisar.")
 
     @st.fragment(run_every=1 if service.active() else None)
     def monitor():
@@ -238,14 +318,29 @@ def execution_view(store, service):
 def main():
     st.set_page_config(page_title="Busca Vagas", page_icon="🔎", layout="wide")
     st.title("Busca Vagas")
-    st.caption("Seu perfil, sua busca, evidências para revisar. Aplicação local · IA desativada")
+    st.caption("Organize seu perfil. Encontre oportunidades. Revise com evidências.")
+    st.html("""<style>
+        .stMainBlockContainer {max-width: 1120px; padding-top: 2.5rem; padding-bottom: 4rem;}
+        h1 {font-size: 2rem !important; letter-spacing: -.025em;}
+        h3 {font-size: 1.25rem !important;}
+        button[data-variant="segmented_control"] {min-height: 44px;}
+        [role="radiogroup"][aria-label="Navegação"] {flex-wrap: wrap;}
+        [data-testid="stCaptionContainer"] {color: #516174; max-width: 75ch;}
+        input::placeholder, textarea::placeholder {color: #516174; opacity: 1;}
+        :root {accent-color: #145fa8;}
+        ::selection {background: #cce4fb; color: #17212f;}
+        @media (max-width: 640px) {.stMainBlockContainer {padding: 1.5rem 1rem 3rem;} }
+    </style>""")
     path = os.environ.get("JOB_HUNTER_DB") or str(Path(__file__).resolve().parents[3] / "data" / "jobs.sqlite")
     store, service = resources(path)
-    page = st.sidebar.radio("Navegação", ["Usuário", "Critérios", "Executar e revisar"])
-    st.sidebar.caption("Os dados ficam neste computador. Candidaturas são feitas por você no site da empresa.")
+    page = st.segmented_control("Navegação", ["Usuário", "Critérios", "Executar e revisar"], default="Usuário",
+                                key="navigation", selection_mode="single", required=True, width="stretch", label_visibility="collapsed")
+    st.divider()
     if page == "Usuário":
         profile_form(store)
     elif page == "Critérios":
         search_form(store)
     else:
         execution_view(store, service)
+    st.divider()
+    st.caption("Cadastro e resultados salvos neste computador · IA opcional apenas para sugerir termos · Candidaturas no site da empresa")

@@ -56,3 +56,20 @@ Campos previamente preenchidos foram preservados. A cidade do cadastro não alte
 persistência dos novos dados, formulário e pendência de competência com nível não informado.
 Navegador confirmou Usuário → Cadastro/Currículo, campos preenchidos e download disponível.
 Servidor atualizado após confirmar ausência de buscas em execução.
+
+
+## Evolução validada em 05/10/2026 — cidades, Groq e navegação
+- `.venv/Scripts/python.exe -m pytest -q`: **27 passed**. Fixtures fictícias, sem rede Gupy/Groq.
+- Seletores UF/cidade e persistência; híbrido/presencial rejeita cidades vazias; preservação do currículo existente.
+- Resumo <=3.000 caracteres inclusive caracteres escapados; remoção de nome, e-mail, telefone, URLs e linhas de contato.
+- Contrato REST simulado: JSON/limites/timeout; respostas inválidas acionam fallback; 401 não repete a mesma chave.
+- Cache de sucesso sem nova chamada; mudança no resumo invalida; falhas não ficam no cache; provedor adicional configurável.
+- AppTest: Sugerir e pesquisar inicia uma vez, mantém modalidade/cidade/salário/exclusões/limites e preserva busca original.
+- Chromium em banco fictício separado: navegação, mudança SP→RJ, cidade correspondente, salvamento e sugestão local.
+- Inspeção 1440/768/390 px: sem overflow horizontal, sem exceções/UI ou erros JS; navegação com alvos de 44 px e placeholders em português.
+- Wheel construído com sucesso; catálogo público IBGE incluído (27 UFs, 5.571 municípios).
+- Ponytail full/review: stdlib, controles nativos e módulos existentes; zero novas dependências da aplicação.
+- Impeccable Operate/polish/craft-floor aplicado; launcher ausente, contexto lido diretamente; QA com dados fictícios.
+- CodeGraph reconstruído: 20 arquivos, 260 nós, 784 arestas; dados privados permanecem ignorados.
+- Preview local reiniciado em 127.0.0.1:8501; health responde `ok`.
+- **Limite de validação:** nenhuma chave Groq disponível; chamada autenticada real depende de configuração do usuário na interface/ambiente. Novo smoke real Gupy não executado (opt-in).

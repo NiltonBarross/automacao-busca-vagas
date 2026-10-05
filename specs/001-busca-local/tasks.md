@@ -41,7 +41,7 @@ Setup → domínio/storage → US1 → US2 → US3 → validação. Testes de ca
 Exemplos paralelos: testes storage e fixtures; CSV e documentação. Não exigem agentes adicionais.
 
 ## Implementation Strategy
-MVP incremental. IA/Sheets/novas fontes após validação humana; nenhuma estrutura especulativa.
+MVP incremental. IA para sugestões autorizada em 05/10/2026; Sheets/novas fontes continuam posteriores.
 Ponytail full: sqlite3, dataclasses, threading, csv; sem ORM, factories ou protocolos de uma implementação.
 
 ## Phase 7: Cadastro Usuário — solicitação de 03/10/2026
@@ -49,3 +49,11 @@ Ponytail full: sqlite3, dataclasses, threading, csv; sem ORM, factories ou proto
 - [x] T021 [US1] Criar Usuário com Cadastro/Currículo e salvar sem perder documento em src/job_hunter/ui/app.py.
 - [x] T022 [US1] Preservar perfis antigos e confirmar domínio ausente em tests/integration/test_storage.py e src/job_hunter/scoring/rules.py.
 - [x] T023 [US1] Verificar formulários/consulta e proteção do PDF em tests/integration/test_ui.py e .gitignore.
+
+## Phase 8: Localidades, Groq e navegação — solicitação de 05/10/2026
+- [x] T024 [US1] Catálogo oficial IBGE empacotado e seletores dependentes para cadastro e busca.
+- [x] T025 [US2] Sugestões Groq com resumo limitado, saída validada, cache e fallback extensível/local, sem SDK.
+- [x] T026 [US2] Revisar/editar termos ou sugerir e iniciar uma única busca, preservando filtros e busca original.
+- [x] T027 Navegação horizontal e tema responsivo usando Impeccable Operate/polish e Ponytail full.
+- [x] T028 Testar offline seletores, minimização, JSON inválido, fallback/cache e execução; inspecionar desktop/mobile.
+- [x] T029 Atualizar evidências/documentação, reindexar CodeGraph e entregar preview local.

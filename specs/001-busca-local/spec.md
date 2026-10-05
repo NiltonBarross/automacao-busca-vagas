@@ -53,7 +53,12 @@ A pessoa filtra e ordena resultados, abre anúncios, marca favoritos/candidatura
 - **FR-007**: Deduplicar por fonte/ID ou URL canônica, preservar first_seen/last_seen e estados pessoais.
 - **FR-008**: Cancelar cooperativamente e consultar resultados/histórico mesmo após falha parcial.
 - **FR-009**: Ordenar/filtrar/exportar CSV e editar estado/observação; neutralizar fórmulas de planilha.
-- **FR-010**: Funcionar sem IA/Sheets; manter IA desativada e integrações posteriores fora deste MVP.
+- **FR-010**: Funcionar sem IA/Sheets. Groq opcional pode sugerir termos a partir de um resumo profissional; coleta e avaliação permanecem independentes de IA. Sheets permanece fora do escopo.
+- **FR-012**: Selecionar estado e cidade a partir de catálogo público do IBGE, também offline. Critérios permitem várias cidades e estados.
+- **FR-013**: Sugerir até quatro termos com Groq usando até 3.000 caracteres profissionais e saída limitada; remover contatos e reutilizar respostas bem-sucedidas do mesmo resumo/provedor na sessão do processo.
+- **FR-014**: Falha de modelo/API/JSON aciona modelo reserva e provedor compatível opcional; ausência/falha total usa título e competências locais. Informar origem/falhas sem expor chave nem resposta do provedor.
+- **FR-015**: Sugerir permite editar/salvar termos. Sugerir e pesquisar inicia exatamente uma execução, mantém filtros/limites e preserva a busca original numa cópia sugerida.
+- **FR-016**: Navegação horizontal acessível e responsiva conecta Usuário, Critérios e Executar e revisar, com estados vazios e configuração Groq na interface.
 - **FR-011**: Testar persistência, classificação, contratos de coleta, cancelamento e interface offline; registrar smoke separado.
 
 ### Key Entities
@@ -75,5 +80,5 @@ A pessoa filtra e ordena resultados, abre anúncios, marca favoritos/candidatura
 ## Assumptions
 - Aplicação pessoal local de uma pessoa; interface em português; sem contas multiusuário.
 - Cidade, idiomas e experiência serão solicitados na interface, sem perguntar aqui nem inferir.
-- IA e integrações são evolução posterior, condicionadas à validação do MVP como permite o plano.
+- Evolução autorizada em 05/10/2026: Groq opcional para sugestões; outras integrações permanecem posteriores.
 - Cancelamento é cooperativo; score experimental não mede chance de contratação.

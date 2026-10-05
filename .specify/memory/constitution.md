@@ -8,7 +8,9 @@ Dados pessoais, bancos, credenciais e exportações MUST ser ignorados pelo Git 
 
 ### II. Funcionamento local e camadas independentes
 O MVP MUST funcionar no Windows sem serviços pagos ou credenciais Google. Domínio e aplicação
-MUST ser independentes de Streamlit e IA. IA MUST permanecer desligada no MVP.
+MUST ser independentes de Streamlit; coleta, domínio e avaliação MUST funcionar sem IA.
+IA opcional MUST atuar apenas na sugestão de termos, por ação explícita, usando um resumo
+profissional limitado e sem campos de contato. Falhas MUST permitir fallback local.
 
 ### III. Evidências e incertezas
 Avaliações MUST citar anúncio e perfil declarado. Ausências MUST gerar pendências.
@@ -36,4 +38,8 @@ Os testes dos comportamentos alterados MUST passar antes da entrega.
 Alterações exigem motivo documentado, versão semântica e revisão de impacto. Instruções explícitas
 do usuário prevalecem. Cada plano MUST verificar os princípios antes e depois do desenho técnico.
 
-**Version**: 1.0.0 | **Ratified**: 2026-10-02 | **Last Amended**: 2026-10-02
+Emenda 1.1.0: solicitação explícita de 05/10/2026 autoriza Groq para sugerir buscas.
+Impacto: somente o resumo profissional é enviado ao provedor escolhido; avaliação e coleta
+continuam locais. Chaves ficam no ambiente ou na sessão, fora do Git e dos snapshots.
+
+**Version**: 1.1.0 | **Ratified**: 2026-10-02 | **Last Amended**: 2026-10-05
