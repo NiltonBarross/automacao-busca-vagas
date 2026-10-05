@@ -47,7 +47,7 @@ Nenhuma violação. Threads são necessárias para cancelar enquanto UI permanec
 
 ## Evolução de 05/10/2026
 - Catálogo oficial IBGE com 27 UFs e 5.571 municípios em recurso JSON empacotado; seletores dependentes sem chamadas durante navegação.
-- Suggestions usa urllib/json/hashlib/dataclasses, sem SDK adicional. Resumo <=3.000 caracteres, até quatro termos, 350 tokens de conclusão (600 no modelo de reserva com raciocínio).
+- Suggestions usa urllib/json/hashlib/dataclasses, sem SDK adicional. Resumo <=3.000 caracteres, até quatro termos, 600 tokens incluindo raciocínio baixo nos GPT-OSS (350 em outros modelos). Padrões GPT-OSS 20B/120B confirmados na API de modelos da conta durante teste autenticado.
 - Cadeia: GROQ_MODEL → GROQ_FALLBACK_MODEL → provedor compatível opcional → título/competências locais. Até 10 s por tentativa; 401/403 não repete a mesma chave.
 - Cache limitado a 64 respostas bem-sucedidas em memória por hash do resumo e configuração; mudanças relevantes invalidam, falhas não ficam no cache.
 - Streamlit usa segmented_control, seletores e botões nativos, tema azul sóbrio e layout estreito responsivo, seguindo Impeccable Operate/polish e Ponytail full.

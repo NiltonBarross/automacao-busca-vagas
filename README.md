@@ -70,12 +70,13 @@ A chave digitada fica na sessão do navegador; não é salva no banco.
 Use **Sugerir termos** para revisar/editar e salvar, ou **Sugerir e pesquisar** para iniciar uma cópia
 da busca com novos termos, preservando localização, salário, exclusões e limites.
 
-Envio limitado a 3.000 caracteres, até quatro termos, saída de até 350 tokens (600 no modelo de reserva).
+Envio limitado a 3.000 caracteres, até quatro termos, saída de até 600 tokens nos modelos GPT-OSS
+(inclui raciocínio baixo); outros modelos usam até 350 tokens.
 Respostas bem-sucedidas do mesmo resumo/provedor são reutilizadas em memória até reiniciar o servidor;
 falhas não são armazenadas no cache. A IA escolhe termos; a coleta e avaliação continuam locais.
 
-Fallback: `GROQ_MODEL` (padrão `llama-3.1-8b-instant`) → `GROQ_FALLBACK_MODEL`
-(padrão `openai/gpt-oss-20b`) → provedor opcional → sugestão local de título/competências.
+Fallback: `GROQ_MODEL` (padrão `openai/gpt-oss-20b`) → `GROQ_FALLBACK_MODEL`
+(padrão `openai/gpt-oss-120b`) → provedor opcional → sugestão local de título/competências.
 Para adicionar um provedor compatível, configure `AI_FALLBACK_BASE_URL` (HTTPS, incluindo `/v1`),
 `AI_FALLBACK_MODEL` e `AI_FALLBACK_API_KEY`. Cada tentativa tem timeout de 10 segundos;
 origem e falhas aparecem na interface. Sem chave, a alternativa local funciona sem tokens.

@@ -23,8 +23,8 @@ def providers(groq_key=""):
     chain = []
     key = groq_key or os.environ.get("GROQ_API_KEY", "")
     if key:
-        for model in dict.fromkeys([os.environ.get("GROQ_MODEL", "llama-3.1-8b-instant"),
-                                   os.environ.get("GROQ_FALLBACK_MODEL", "openai/gpt-oss-20b")]):
+        for model in dict.fromkeys([os.environ.get("GROQ_MODEL", "openai/gpt-oss-20b"),
+                                   os.environ.get("GROQ_FALLBACK_MODEL", "openai/gpt-oss-120b")]):
             chain.append(Provider("Groq", "https://api.groq.com/openai/v1", model, key))
     url, model, key = (os.environ.get("AI_FALLBACK_" + field, "") for field in ["BASE_URL", "MODEL", "API_KEY"])
     if url and model and key:

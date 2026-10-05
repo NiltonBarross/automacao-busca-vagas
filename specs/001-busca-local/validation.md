@@ -73,3 +73,13 @@ Servidor atualizado após confirmar ausência de buscas em execução.
 - CodeGraph reconstruído: 20 arquivos, 260 nós, 784 arestas; dados privados permanecem ignorados.
 - Preview local reiniciado em 127.0.0.1:8501; health responde `ok`.
 - **Limite de validação:** nenhuma chave Groq disponível; chamada autenticada real depende de configuração do usuário na interface/ambiente. Novo smoke real Gupy não executado (opt-in).
+
+
+### Teste autenticado Groq em 05/10/2026
+- Credencial fornecida para testes; somente memória do processo, sem arquivo/banco/Git.
+- `/models` confirmou GPT-OSS 20B/120B disponíveis; Llama 3.1 retornou 404 e foi substituído no padrão.
+- Perfil fictício: GPT-OSS 20B retornou quatro cargos, 268 tokens; repetição confirmou cache sem nova chamada.
+- Falha principal simulada: fallback real GPT-OSS 120B retornou termos válidos, 288 tokens.
+- Primeira chamada real GPT-OSS 20B: 285 tokens; total das três chamadas bem-sucedidas: 841 tokens.
+- Servidor reiniciado com credencial apenas no ambiente do processo. Interface confirmou configuração sem iniciar busca ou enviar currículo pessoal.
+- 27 testes offline passaram novamente; CodeGraph reconstruído. A limitação de chamada autenticada registrada acima foi resolvida.
